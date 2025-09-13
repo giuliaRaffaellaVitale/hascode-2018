@@ -1,5 +1,12 @@
 import os
 import sys
+from enum import Enum
+import random
+
+
+class SortCriteria(Enum):
+    EARLY_START = 0
+    DISTANCE = 1
 
 class Vehicle:
     def __init__(self):
@@ -25,6 +32,8 @@ class Simulation:
         self.rides = rides
         self.bonus = B
         self.steps = T
+
+    # def sort(self, criteria: sortCriteria)
 
     def __str__(self):
         output = []
@@ -77,9 +86,47 @@ def parser(input_file: str) -> Simulation:
 
     return Simulation(rows, cols, vehicles, rides, bonus, steps, rides_obj)
 
+def sortRides(rides_list, sortCriteria):
+
+    if sortCriteria == SortCriteria.EARLY_START:
+        sorted_rides = sorted(rides_list, key=lambda r: r.early_start)
+
+    if sortCriteria == SortCriteria.DISTANCE:
+        pass
+    
+    return sorted_rides
+
 
 if __name__ == "__main__":
     
     sim = parser("./input/a.txt")
-    
     print(sim)
+
+    # routes list to save the different routes
+    routes = [[] for _ in range(len(sim.vehicles))]
+
+    #for each sorted ride, assign it to a random route 
+
+    # vehicle makes a route, like 1 -> 2 -> 3 where 1, 2, 3 are rides, 
+    # the vehicle do the ride 1, then the ride 2, and than the ride 3, that's a route
+    # vehicle 1: 3 -> 2 this is a route
+    # vehicle 2: 1 this is also a route
+
+    sorted_rides = sortRides(sim.rides, SortCriteria.EARLY_START)
+
+    for ride in sorted_rides:
+        route_index = random.randrange(len(sim.vehicles)) 
+        routes[route_index].append(ride)
+
+
+    print("-------------------")
+    print("Routes details\n")
+
+    for index, route in enumerate(routes):
+        print(f"Route {index + 1}:")
+        for ride in route:
+            print(f"  {ride}")   # relies on Ride.__str__()
+        print()
+
+    print("-------------------")
+
