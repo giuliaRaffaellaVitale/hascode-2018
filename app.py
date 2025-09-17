@@ -13,11 +13,12 @@ class Vehicle:
         pass
 
 class Ride:
-    def __init__(self, startX, starY, endX, endY, early_start, latest):
+    def __init__(self, startX, starY, endX, endY, early_start, latest, original_index):
         self.start = (startX, starY)
         self.end = (endX, endY)
         self.early_start = early_start
         self.latest_finish = latest
+        self.original_index = original_index
 
     def __str__(self):
         return (f"Ride(start={self.start}, end={self.end}, "
@@ -78,10 +79,12 @@ def parser(input_file: str) -> Simulation:
     rides_obj = []
     with open(input_file, "r") as f:
         next(f)
+        i = 0
         for line in f:
             ride_info = list(map(int, line.split()))
-            r = Ride(ride_info[0], ride_info[1], ride_info[2], ride_info[3], ride_info[4], ride_info[5])
+            r = Ride(ride_info[0], ride_info[1], ride_info[2], ride_info[3], ride_info[4], ride_info[5], i)
             rides_obj.append(r)
+            i += 1
 
 
     return Simulation(rows, cols, vehicles, rides, bonus, steps, rides_obj)
@@ -96,10 +99,19 @@ def sortRides(rides_list, sortCriteria):
     
     return sorted_rides
 
+def constructFunctionForJudge(routes):
+    with open("result.txt", "w") as f:
+        for i, route in enumerate(routes):
+            rides = " ".join([f"{ride.original_index}" for ride in route])
+            f.write(f"{len(route)} {rides}\n")
+
 
 if __name__ == "__main__":
-    
-    sim = parser("./input/a.txt")
+    if len(sys.argv) < 2:
+        print("Usage: python app.py <input_file>")
+        sys.exit(1)
+    input_file = sys.argv[1]
+    sim = parser(input_file)
     print(sim)
 
     # routes list to save the different routes
@@ -118,12 +130,14 @@ if __name__ == "__main__":
         route_index = random.randrange(len(sim.vehicles)) 
         routes[route_index].append(ride)
 
+    constructFunctionForJudge(routes)
+
 
     print("-------------------")
     print("Routes details\n")
 
-    for index, route in enumerate(routes):
-        print(f"Route {index + 1}:")
+    for i, route in enumerate(routes):
+        print(f"Route {i + 1}:")
         for ride in route:
             print(f"  {ride}")   # relies on Ride.__str__()
         print()
