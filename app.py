@@ -19,6 +19,7 @@ class Ride:
         self.early_start = early_start
         self.latest_finish = latest
         self.original_index = original_index
+        self.distance = abs(startX - endX) + abs(starY - endY)
 
     def __str__(self):
         return (f"Ride(start={self.start}, end={self.end}, "
@@ -105,6 +106,14 @@ def constructFunctionForJudge(routes):
             rides = " ".join([f"{ride.original_index}" for ride in route])
             f.write(f"{len(route)} {rides}\n")
 
+# algorithms
+
+def randomAssignment(sorted_rides):
+    for ride in sorted_rides:
+        route_index = random.randrange(len(sim.vehicles)) 
+        routes[route_index].append(ride)
+    return routes
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
@@ -126,9 +135,7 @@ if __name__ == "__main__":
 
     sorted_rides = sortRides(sim.rides, SortCriteria.EARLY_START)
 
-    for ride in sorted_rides:
-        route_index = random.randrange(len(sim.vehicles)) 
-        routes[route_index].append(ride)
+    routes = randomAssignment(sorted_rides)
 
     constructFunctionForJudge(routes)
 
