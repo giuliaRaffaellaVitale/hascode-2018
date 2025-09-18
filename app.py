@@ -13,17 +13,32 @@ class Vehicle:
         pass
 
 class Ride:
-    def __init__(self, startX, starY, endX, endY, early_start, latest, original_index):
-        self.start = (startX, starY)
+    def __init__(self, startX, startY, endX, endY, early_start, latest, original_index, grid_rows, grid_cols):
+        self.start = (startX, startY)
+        self.startX = startX
+        self.startY = startY
         self.end = (endX, endY)
+        self.endX = endX
+        self.endY = endY
         self.early_start = early_start
         self.latest_finish = latest
         self.original_index = original_index
-        self.distance = abs(startX - endX) + abs(starY - endY)
+        self.distance = abs(startX - endX) + abs(startY - endY)
+        self.start_region = get_4region(startX, startY, grid_rows, grid_cols)
+        self.end_region = get_4region(endX, endY, grid_rows, grid_cols)
 
     def __str__(self):
         return (f"Ride(start={self.start}, end={self.end}, "
-                f"earliest={self.early_start}, latest={self.latest_finish})")
+                f"earliest={self.early_start}, latest={self.latest_finish}),"
+                f"distance={self.distance}, start_region={self.start_region}, end_region={self.end_region}")
+
+class Route:
+    def __init__(self, ride):
+        self.rides = [ride]
+        self.distance = 0
+
+    def __str__(self):
+        return " -> ".join([f"{ride.original_index}" for ride in self.rides])
 
 class Simulation:
     def __init__(self, R, C, F, N, B, T, rides):
@@ -68,8 +83,8 @@ def parser(input_file: str) -> Simulation:
             informations = list(map(int, line.split()))
             break
             
-        rows = informations[0]
-        cols = informations[1]
+        grid_rows = informations[0]
+        grid_cols = informations[1]
         vehicles = informations[2]
         rides = informations[3]
         bonus = informations[4]
@@ -83,12 +98,12 @@ def parser(input_file: str) -> Simulation:
         i = 0
         for line in f:
             ride_info = list(map(int, line.split()))
-            r = Ride(ride_info[0], ride_info[1], ride_info[2], ride_info[3], ride_info[4], ride_info[5], i)
+            r = Ride(ride_info[0], ride_info[1], ride_info[2], ride_info[3], ride_info[4], ride_info[5], i, grid_rows, grid_cols)
             rides_obj.append(r)
             i += 1
 
 
-    return Simulation(rows, cols, vehicles, rides, bonus, steps, rides_obj)
+    return Simulation(grid_rows, grid_cols, vehicles, rides, bonus, steps, rides_obj)
 
 def sortRides(rides_list, sortCriteria):
 
@@ -96,15 +111,42 @@ def sortRides(rides_list, sortCriteria):
         sorted_rides = sorted(rides_list, key=lambda r: r.early_start)
 
     if sortCriteria == SortCriteria.DISTANCE:
-        pass
+        sorted_rides = sorted(rides_list, key=lambda r: r.distance)
     
     return sorted_rides
+
+def get_4region(row, col, num_rows, num_cols):
+    # Divide rows and columns in half
+    row_region = 0 if row < num_rows // 2 else 1
+    col_region = 0 if col < num_cols // 2 else 1
+    # Region index: 0 (top-left), 1 (top-right), 2 (bottom-left), 3 (bottom-right)
+    return row_region * 2 + col_region
+
+def get_9region(row, col, num_rows, num_cols):
+    # Divides rows and columns in 3 parts
+    row_region = row * 3 // num_rows
+    col_region = col * 3 // num_cols
+    # Region index: from 0 to 8
+    return row_region * 3 + col_region
+
+def get_16region(row, col, num_rows, num_cols):
+    # Devides rows and columns in 4 parts
+    row_region = row * 4 // num_rows
+    col_region = col * 4 // num_cols
+    # Region index: from 0 to 15
+    return row_region * 4 + col_region
+
+def compute_distance(startX, startY, endX, endY):
+    computed_distance = abs(startX - endX) + abs(startY - endY)
+    return computed_distance
 
 def constructFunctionForJudge(routes):
     with open("result.txt", "w") as f:
         for i, route in enumerate(routes):
-            rides = " ".join([f"{ride.original_index}" for ride in route])
-            f.write(f"{len(route)} {rides}\n")
+            rides = " ".join([f"{ride.original_index}" for ride in route.rides])
+            f.write(f"{len(route.rides)} {rides}\n")
+
+
 
 # algorithms
 
@@ -113,6 +155,32 @@ def randomAssignment(sorted_rides):
         route_index = random.randrange(len(sim.vehicles)) 
         routes[route_index].append(ride)
     return routes
+
+def assignmentByLabels(sorted_rides, gridX, gridY):
+    # assign the first n rides (n = number of vehicles) to the n vehicles
+    # ride_assigned_index = 0
+    #for route in routes:
+     #   route = Route(sorted_rides[ride_assigned_index])
+      #  route.distance = sorted_rides[ride_assigned_index].distance + sorted_rides[ride_assigned_index].startX + sorted_rides[ride_assigned_index].startY   
+       # ride_assigned_index += 1
+    
+    routes = [Route(sorted_rides[i]) for i in range(len(sim.vehicles))]
+
+    for ride in sorted_rides[len(sim.vehicles):]:
+        best_route_index = 0
+        min_distance = gridX*gridY
+        for i, route in enumerate(routes):
+            last_ride = route.rides[-1]
+            if last_ride.end_region == ride.start_region:
+                new_distance = route.distance + compute_distance(last_ride.endX, last_ride.endY, ride.startX, ride.startY) + ride.distance
+                if  new_distance < min_distance:
+                    min_distance = new_distance
+                    best_route_index = i
+        routes[best_route_index].rides.append(ride)
+        routes[best_route_index].distance = min_distance
+
+    return routes
+
 
 
 if __name__ == "__main__":
@@ -124,7 +192,7 @@ if __name__ == "__main__":
     print(sim)
 
     # routes list to save the different routes
-    routes = [[] for _ in range(len(sim.vehicles))]
+    # routes = [[] for _ in range(len(sim.vehicles))]
 
     #for each sorted ride, assign it to a random route 
 
@@ -135,7 +203,8 @@ if __name__ == "__main__":
 
     sorted_rides = sortRides(sim.rides, SortCriteria.EARLY_START)
 
-    routes = randomAssignment(sorted_rides)
+    # routes = randomAssignment(sorted_rides)
+    routes = assignmentByLabels(sorted_rides, sim.rows, sim.cols)
 
     constructFunctionForJudge(routes)
 
@@ -145,8 +214,8 @@ if __name__ == "__main__":
 
     for i, route in enumerate(routes):
         print(f"Route {i + 1}:")
-        for ride in route:
-            print(f"  {ride}")   # relies on Ride.__str__()
+        for ride in route.rides:
+            print(f"  {ride}")
         print()
 
     print("-------------------")
