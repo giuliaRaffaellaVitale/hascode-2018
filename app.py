@@ -2,6 +2,7 @@ import os
 import sys
 from enum import Enum
 import random
+import time
 
 
 class SortCriteria(Enum):
@@ -24,8 +25,8 @@ class Ride:
         self.latest_finish = latest
         self.original_index = original_index
         self.distance = abs(startX - endX) + abs(startY - endY)
-        self.start_region = get_4region(startX, startY, grid_rows, grid_cols)
-        self.end_region = get_4region(endX, endY, grid_rows, grid_cols)
+        self.start_region = get_16region(startX, startY, grid_rows, grid_cols)
+        self.end_region = get_16region(endX, endY, grid_rows, grid_cols)
 
     def __str__(self):
         return (f"Ride(start={self.start}, end={self.end}, "
@@ -115,6 +116,9 @@ def sortRides(rides_list, sortCriteria):
     
     return sorted_rides
 
+def get_1region(row, col, num_rows, num_cols):
+    return 0
+
 def get_4region(row, col, num_rows, num_cols):
     # Divide rows and columns in half
     row_region = 0 if row < num_rows // 2 else 1
@@ -151,9 +155,14 @@ def constructFunctionForJudge(routes):
 # algorithms
 
 def randomAssignment(sorted_rides):
+    # Inizializza una lista di oggetti Route vuoti, uno per ogni veicolo
+    routes = [Route(None) for _ in range(len(sim.vehicles))]
     for ride in sorted_rides:
-        route_index = random.randrange(len(sim.vehicles)) 
-        routes[route_index].append(ride)
+        route_index = random.randrange(len(routes))
+        if routes[route_index].rides[0] is None:
+            routes[route_index].rides[0] = ride
+        else:
+            routes[route_index].rides.append(ride)
     return routes
 
 def assignmentByLabels(sorted_rides, gridX, gridY):
@@ -166,24 +175,34 @@ def assignmentByLabels(sorted_rides, gridX, gridY):
     
     routes = [Route(sorted_rides[i]) for i in range(len(sim.vehicles))]
 
+    # assign the rest of the rides to the routes
+
     for ride in sorted_rides[len(sim.vehicles):]:
+        # For each remaining ride (after the first N rides assigned to vehicles):
         best_route_index = 0
-        min_distance = gridX*gridY
+        min_distance = gridX * gridY  # Initialize with a large value (max possible grid distance)
         for i, route in enumerate(routes):
-            last_ride = route.rides[-1]
+            last_ride = route.rides[-1]  # Get the last ride assigned to this route
+            # Check if the end region of the last ride matches the start region of the current ride
             if last_ride.end_region == ride.start_region:
+                # Calculate the total distance if this ride is added to this route
                 new_distance = route.distance + compute_distance(last_ride.endX, last_ride.endY, ride.startX, ride.startY) + ride.distance
-                if  new_distance < min_distance:
+                # If this route gives a smaller total distance, update the best route
+                if new_distance < min_distance:
                     min_distance = new_distance
                     best_route_index = i
+        # Assign the ride to the best route found
         routes[best_route_index].rides.append(ride)
+        # Update the total distance for the route
         routes[best_route_index].distance = min_distance
+        
 
     return routes
 
 
 
 if __name__ == "__main__":
+    start_time = time.time()
     if len(sys.argv) < 2:
         print("Usage: python app.py <input_file>")
         sys.exit(1)
@@ -219,4 +238,8 @@ if __name__ == "__main__":
         print()
 
     print("-------------------")
+
+
+    end_time = time.time()
+    print(f"Execution time: {end_time - start_time:.2f} seconds")
 
