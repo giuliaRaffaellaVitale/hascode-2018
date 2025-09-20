@@ -200,7 +200,7 @@ def assignmentByLabels(sorted_rides, gridX, gridY):
                 # Calculate the total distance if this ride is added to this route
                 new_distance = route.distance + compute_distance(last_ride.endX, last_ride.endY, ride.startX, ride.startY) + ride.distance
                 # If this route gives a smaller total distance, update the best route
-                if new_distance < min_distance:
+                if new_distance <= sim.steps and new_distance <= ride.latest_finish and new_distance < min_distance:
                     min_distance = new_distance
                     best_route_index = i
         # Assign the ride to the best route found
