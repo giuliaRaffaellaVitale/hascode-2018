@@ -1,3 +1,4 @@
+from builtins import set
 import os
 import sys
 from enum import Enum
@@ -166,6 +167,17 @@ def randomAssignment(sorted_rides):
     return routes
 
 def assignmentByLabels(sorted_rides, gridX, gridY):
+    """
+    Assigns rides to vehicles based on their start and end regions to minimize route distances.
+
+    Parameters:
+        sorted_rides (list): List of Ride objects, sorted by a given criteria.
+        gridX (int): Number of rows in the grid.
+        gridY (int): Number of columns in the grid.
+
+    Returns:
+        list: A list of Route objects, each representing the sequence of rides assigned to a vehicle.
+    """
     # assign the first n rides (n = number of vehicles) to the n vehicles
     # ride_assigned_index = 0
     #for route in routes:
@@ -173,11 +185,11 @@ def assignmentByLabels(sorted_rides, gridX, gridY):
       #  route.distance = sorted_rides[ride_assigned_index].distance + sorted_rides[ride_assigned_index].startX + sorted_rides[ride_assigned_index].startY   
        # ride_assigned_index += 1
     
+    # Initialize routes with the first N rides assigned to each vehicle
     routes = [Route(sorted_rides[i]) for i in range(len(sim.vehicles))]
 
     # assign the rest of the rides to the routes
-
-    for ride in sorted_rides[len(sim.vehicles):]:
+    for k, ride in enumerate(sorted_rides[len(sim.vehicles):]):
         # For each remaining ride (after the first N rides assigned to vehicles):
         best_route_index = 0
         min_distance = gridX * gridY  # Initialize with a large value (max possible grid distance)
@@ -195,7 +207,43 @@ def assignmentByLabels(sorted_rides, gridX, gridY):
         routes[best_route_index].rides.append(ride)
         # Update the total distance for the route
         routes[best_route_index].distance = min_distance
-        
+    
+    # Assign any rides that were not added to any route
+    # Instead, ensure all rides are assigned by iterating through unassigned rides.
+    # Step 1: Collect all assigned ride indices
+    assigned_indices = set()
+    for route in routes:
+        for ride in route.rides:
+            if ride is not None:
+                assigned_indices.add(ride.original_index)
+
+    # Step 2: Find all unassigned ride indices
+    all_indices = set(range(len(sorted_rides)))
+    unassigned_indices = all_indices - assigned_indices
+    for idx in unassigned_indices:
+        # Assign each unassigned ride to the route with the least total distance
+        ride = sorted_rides[idx]
+
+        # Find the route with the minimum total distance among all routes
+        min_route = min(routes, key=lambda r: r.distance)
+
+        # Add the current ride to the route with minimum distance
+        min_route.rides.append(ride)
+
+        # Get the second-to-last ride (the previous ride before the one just added)
+        # If there's only one ride in the route now, last_ride will be None
+        last_ride = min_route.rides[-2] if len(min_route.rides) > 1 else None
+
+        # Update the total distance of the route
+        if last_ride:
+            # If there was a previous ride, add:
+            # 1. Travel distance from end of previous ride to start of current ride
+            # 2. Distance of the current ride itself
+            min_route.distance += compute_distance(last_ride.endX, last_ride.endY, ride.startX, ride.startY) + ride.distance
+        else:
+            # If this is the first ride in the route, just add the ride's distance
+            # (assuming vehicle starts at origin or previous distance calculation already accounts for initial position)
+            min_route.distance += ride.distance
 
     return routes
 
