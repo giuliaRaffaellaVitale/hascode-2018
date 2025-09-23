@@ -10,10 +10,6 @@ class SortCriteria(Enum):
     EARLY_START = 0
     DISTANCE = 1
 
-class Vehicle:
-    def __init__(self):
-        pass
-
 class Ride:
     def __init__(self, startX, startY, endX, endY, early_start, latest, original_index, grid_rows, grid_cols):
         self.start = (startX, startY)
@@ -26,8 +22,8 @@ class Ride:
         self.latest_finish = latest
         self.original_index = original_index
         self.distance = abs(startX - endX) + abs(startY - endY)
-        self.start_region = get_16region(startX, startY, grid_rows, grid_cols)
-        self.end_region = get_16region(endX, endY, grid_rows, grid_cols)
+        self.start_region = get_9region(startX, startY, grid_rows, grid_cols)
+        self.end_region = get_9region(endX, endY, grid_rows, grid_cols)
 
     def __str__(self):
         return (f"Ride(start={self.start}, end={self.end}, "
@@ -46,7 +42,7 @@ class Simulation:
     def __init__(self, R, C, F, N, B, T, rides):
         self.rows = R
         self.cols = C
-        self.vehicles = [Vehicle for i in range(F)]
+        self.vehicles = F
         self.num_rides = N
         self.rides = rides
         self.bonus = B
@@ -58,7 +54,7 @@ class Simulation:
         output = []
         output.append(f"Simulation:")
         output.append(f"  Grid: {self.rows} rows x {self.cols} cols")
-        output.append(f"  Vehicles: {len(self.vehicles)}")
+        output.append(f"  Vehicles: {self.vehicles}")
         output.append(f"  Rides: {len(self.rides)}")
         output.append(f"  Bonus: {self.bonus}")
         output.append(f"  Steps: {self.steps}")
@@ -156,33 +152,20 @@ def constructFunctionForJudge(routes):
 # algorithms
 
 def randomAssignment(sorted_rides):
-    # Inizializza una lista di oggetti Route vuoti, uno per ogni veicolo
-    routes = [Route(None) for _ in range(len(sim.vehicles))]
+    # Initialize a list of empty Route objects, one for each vehicle
+    routes = [Route() for _ in range(len(sim.vehicles))]
     for ride in sorted_rides:
         route_index = random.randrange(len(routes))
-        if routes[route_index].rides[0] is None:
-            routes[route_index].rides[0] = ride
-        else:
-            routes[route_index].rides.append(ride)
+        routes[route_index].rides.append(ride)
+        routes[route_index].distance += ride.distance
     return routes
 
 def assignmentByLabels(sorted_rides, gridX, gridY):
-    """
-    Assigns rides to vehicles based on their start and end regions to minimize route distances.
 
-    Parameters:
-        sorted_rides (list): List of Ride objects, sorted by a given criteria.
-        gridX (int): Number of rows in the grid.
-        gridY (int): Number of columns in the grid.
+    # create a list of empty Route objects, one for each vehicle
+    routes = [Route() for _ in range(sim.vehicles)]
 
-    Returns:
-        list: A list of Route objects, each representing the sequence of rides assigned to a vehicle.
-    """
-    # assign the first n rides (n = number of vehicles) to the n vehicles
-    routes = [Route() for _ in range(len(sim.vehicles))]
-
-    # Initialize routes with the first N rides assigned to each vehicle
-
+    # Initialize routes with the first N rides assigned to each vehicle and compute their distances
     ride_assigned_index = 0
     for route in routes:
         assigned_ride = sorted_rides[ride_assigned_index]
@@ -258,16 +241,6 @@ if __name__ == "__main__":
     input_file = sys.argv[1]
     sim = parser(input_file)
     print(sim)
-
-    # routes list to save the different routes
-    # routes = [[] for _ in range(len(sim.vehicles))]
-
-    #for each sorted ride, assign it to a random route 
-
-    # vehicle makes a route, like 1 -> 2 -> 3 where 1, 2, 3 are rides, 
-    # the vehicle do the ride 1, then the ride 2, and than the ride 3, that's a route
-    # vehicle 1: 3 -> 2 this is a route
-    # vehicle 2: 1 this is also a route
 
     sorted_rides = sortRides(sim.rides, SortCriteria.EARLY_START)
 
