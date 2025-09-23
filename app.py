@@ -22,8 +22,8 @@ class Ride:
         self.latest_finish = latest
         self.original_index = original_index
         self.distance = abs(startX - endX) + abs(startY - endY)
-        self.start_region = get_9region(startX, startY, grid_rows, grid_cols)
-        self.end_region = get_9region(endX, endY, grid_rows, grid_cols)
+        self.start_region = get_16region(startX, startY, grid_rows, grid_cols)
+        self.end_region = get_16region(endX, endY, grid_rows, grid_cols)
 
     def __str__(self):
         return (f"Ride(start={self.start}, end={self.end}, "
@@ -205,10 +205,12 @@ def assignmentByLabels(sorted_rides, gridX, gridY):
     for ride in not_assigned_rides:
         print(f"Ride not assigned: {ride}")
 
+    
     while len(not_assigned_rides) > 0:
 
         # Find the route with the minimum total distance among all routes
         min_route = min(routes, key=lambda r: r.distance)
+        route_index = routes.index(min_route)
         # Get the last ride in that route
         last_ride = min_route.rides[-1]
 
@@ -221,12 +223,12 @@ def assignmentByLabels(sorted_rides, gridX, gridY):
                 min_distance = new_distance
                 best_route = ride
         # Add the best ride to the min_route
-        min_route.rides.append(best_route)
+        routes[route_index].rides.append(best_route)
         # Update the distance of min_route
-        min_route.distance += min_distance
+        routes[route_index].distance += min_distance
         # Remove the assigned ride from not_assigned_rides
         not_assigned_rides.remove(best_route)
-
+    
 
     return routes
     
